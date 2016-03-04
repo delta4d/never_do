@@ -47,6 +47,8 @@ Everything after `x` starting with `a` is considered as add a task, thus
 `x a ...` is the same as `x add ...`, the same for `l[ist]`, `f[inish]`,
 `e[dit]`, `g[enerate]`, `h[elp]`.
 
+![usage](./screenshots/usage.png)
+
 ## Contribute
 
 If you find any bug, or have any question, please file an issue or make a pr,
