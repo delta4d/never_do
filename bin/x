@@ -1,0 +1,171 @@
+#!/usr/bin/env ruby
+
+require "date"
+require "fileutils"
+
+PATH   = "#{ENV["HOME"]}/.never_do"
+EDITOR = ENV["EDITOR"] || "gvim"
+
+class Task
+    DELIM = "`"
+
+    attr_reader :desc, :start, :finish
+
+    def initialize(desc, start=-1, finish=-1)
+        @desc   = desc
+        @start  = start == -1 ? _now : start
+        @finish = finish
+    end
+
+    def finish!
+        @finish = _now
+        self
+    end
+
+    def finish?
+        @finish.to_i != -1
+    end
+
+    def to_s
+        [@desc, @start, @finish].join(DELIM)
+    end
+
+    class << self
+        # backtick ` is the delimiter
+        def parse(str)
+            Task.new(*str.split(DELIM))
+        end
+    end
+
+    private
+
+    def _now
+        Time.now.to_i
+    end
+end
+
+class X
+    def initialize()
+        _ensure_file_structure
+        @ys = _load("#{PATH}/y")
+        @zs = _load("#{PATH}/z")
+    end
+
+    def add(task)
+        @ys << Task.new(task)
+        _save
+    end
+
+    def list(done=false)
+        len = @ys.size.to_s.length
+        @ys.map.with_index { |t, i| "#{i.to_s.ljust(len)}  #{t.desc}" }
+    end
+
+    # after finishing one task, the id is renumbered
+    def finish(id)
+        @zs << @ys.slice!(id).finish!
+        _save
+        @zs.last
+    end
+
+    def edit(file)
+        system "#{EDITOR} #{PATH}/#{file}"
+    end
+
+    def generate(output)
+        output ||= "./task_log.md"
+        # group by year, then group by month
+        File.open(output, "w") do |f|
+            [*@ys, *@zs].group_by { |t| Time.at(t.start.to_i).year }.each do |year, y_tasks|
+                y_tot  = y_tasks.size
+                y_done = 0
+
+                f.puts "## #{year}"
+                f.puts "\n------"
+                f.puts
+
+                y_tasks.group_by { |t| Time.at(t.start.to_i).month }.each do |month, m_tasks|
+                    cur_month = Date::MONTHNAMES[month]
+                    m_tot  = m_tasks.size
+                    m_done = 0
+
+                    f.puts "### #{cur_month}"
+                    f.puts "\n------"
+                    f.puts
+
+                    m_tasks.sort_by(&:start).each do |task|
+                        mark = task.finish? ? "x" : " "
+                        done += 1 if task.finish?
+                        f.puts "- [#{mark}] #{task.desc}"
+                    end
+
+                    f.puts "\nIn #{cur_month}, you have #{m_tot} tasks, finished #{m_done} tasks, complete #{100.*m_done/m_tot}% of them.\n"
+
+                    y_done += m_done
+                end
+
+                f.puts "\nIn year #{year}, you have #{y_tot} tasks, finished #{y_done} tasks, complete #{100.*y_done/y_tot}% of them.\n"
+            end
+        end
+    end
+
+    private
+
+    def _ensure_file_structure
+        Dir.exist?(PATH)         || FileUtils.mkdir_p(PATH)
+        File.exist?("#{PATH}/y") || FileUtils.touch("#{PATH}/y")
+        File.exist?("#{PATH}/z") || FileUtils.touch("#{PATH}/z")
+    end
+
+    def _load(file)
+        File.readlines(file).map { |line| Task.parse(line) }
+    end
+
+    def _save
+        %w[y z].each do |x|
+            File.open("#{PATH}/#{x}", "w") do |f|
+                instance_variable_get("@#{x}s").each do |task|
+                    f.puts task.to_s
+                end
+            end
+        end
+    end
+end
+
+def help
+    puts <<-EOH.gsub(/^\s*\|/, "")
+        |Usage: x [OPTION] [ID|TASK|FILE]
+        |
+        |  a TASK        add a task
+        |  l             list all tasks
+        |  f ID          finish task with ID
+        |  e [yz]        edit todo file y or done file z
+        |  g [OUTFILE]   generate task log to PATH
+        |  h             see me
+    EOH
+end
+
+def never_do
+    x = X.new
+    action = ARGV.shift
+    case action
+    when /^a.*/
+        x.add(ARGV.join(" "))
+    when /^l.*/, nil
+        x.list.each { |t| puts t }
+    when /^f.*/
+        task = x.finish(ARGV.first.to_i).desc
+        puts "finish task: #{task}"
+    when /^e.*/
+        file = ARGV.first
+        (file == "y" || file == "z") ? x.edit(file) : help
+    when /^g.*/
+        x.generate(ARGV.first)
+    else
+        help
+    end
+end
+
+never_do
+
+# vim:ts=4:et
