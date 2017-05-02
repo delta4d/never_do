@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+require "colorize"
+
 require "date"
 require "fileutils"
 
@@ -34,7 +36,7 @@ class Task
     end
 
     def pp
-        "#{@desc} [#{_time @start} -> #{_time(@finish)}]"
+        "[#{_time(@start).colorize(:cyan)} ~ #{_time(@finish).colorize(:yellow)}] #{@desc.colorize(:blue)}"
     end
 
     class << self
@@ -51,7 +53,7 @@ class Task
     end
 
     def _time(t)
-        t == -1 ? "infinity" : Time.at(t).localtime.strftime("%y/%m/%d %H:%M")
+        t == -1 ? "infinity" : Time.at(t).localtime.strftime("%m/%d %H:%M")
     end
 end
 
@@ -70,7 +72,7 @@ class X
     def list(done=false)
         ls = done ? @zs : @ys
         len = ls.size.to_s.length
-        ls.map.with_index { |t, i| "#{i.to_s.ljust(len)} -- #{t.pp}" }
+        ls.map.with_index { |t, i| "    #{i.to_s.ljust(len)}. #{done ? '✔'.colorize(:green) : '✘'.colorize(:red)} #{t.pp}" }
     end
 
     # after finishing one task, the id is renumbered
@@ -146,14 +148,15 @@ end
 
 def help
     puts <<-EOH.gsub(/^\s*\|/, "")
-        |Usage: x [OPTION] [ID|TASK|FILE]
         |
-        |  add      TASK        add a task
-        |  list                 list all tasks
-        |  finish   ID          finish task with ID
-        |  edit     [yz]        edit todo file "y" or done file "z"
-        |  generate [OUTFILE]   generate task log to PATH
-        |  help                 see me
+        |   Usage: x [OPTION] [ID|TASK|FILE]
+        |
+        |       add      TASK        add a task
+        |       list                 list all tasks
+        |       finish   ID          finish task with ID
+        |       edit     [yz]        edit todo file "y" or done file "z"
+        |       generate [OUTFILE]   generate task log to PATH
+        |       help                 see me
     EOH
 end
 
@@ -164,6 +167,7 @@ def never_do
     when /^a.*/
         x.add(ARGV.join(" "))
     when /^l.*/, nil
+        puts
         x.list(!ARGV.empty?).each { |t| puts t }
     when /^f.*/
         task = x.finish(ARGV.first.to_i).desc
