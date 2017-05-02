@@ -4,7 +4,7 @@ require "date"
 require "fileutils"
 
 PATH   = "#{ENV["HOME"]}/.never_do"
-EDITOR = ENV["EDITOR"] || "gvim"
+EDITOR = ENV["EDITOR"] || "vi"
 
 class Task
     DELIM = "`"
@@ -15,6 +15,9 @@ class Task
         @desc   = desc
         @start  = start == -1 ? _now : start
         @finish = finish
+
+        @start = @start.to_i
+        @finish = @finish.to_i
     end
 
     def finish!
@@ -23,11 +26,15 @@ class Task
     end
 
     def finish?
-        @finish.to_i != -1
+        @finish != -1
     end
 
     def to_s
-        [@desc, @start, @finish].join(DELIM)
+        [@desc, @start.to_s, @finish.to_s].join(DELIM)
+    end
+
+    def pp
+        "#{@desc} [#{_time @start} -> #{_time(@finish)}]"
     end
 
     class << self
@@ -41,6 +48,10 @@ class Task
 
     def _now
         Time.now.to_i
+    end
+
+    def _time(t)
+        t == -1 ? "infinity" : Time.at(t).localtime.strftime("%y/%m/%d %H:%M")
     end
 end
 
@@ -57,8 +68,9 @@ class X
     end
 
     def list(done=false)
-        len = @ys.size.to_s.length
-        @ys.map.with_index { |t, i| "#{i.to_s.ljust(len)}  #{t.desc}" }
+        ls = done ? @zs : @ys
+        len = ls.size.to_s.length
+        ls.map.with_index { |t, i| "#{i.to_s.ljust(len)} -- #{t.pp}" }
     end
 
     # after finishing one task, the id is renumbered
@@ -95,7 +107,7 @@ class X
 
                     m_tasks.sort_by(&:start).each do |task|
                         mark = task.finish? ? "x" : " "
-                        done += 1 if task.finish?
+                        m_done += 1 if task.finish?
                         f.puts "- [#{mark}] #{task.desc}"
                     end
 
@@ -136,12 +148,12 @@ def help
     puts <<-EOH.gsub(/^\s*\|/, "")
         |Usage: x [OPTION] [ID|TASK|FILE]
         |
-        |  a TASK        add a task
-        |  l             list all tasks
-        |  f ID          finish task with ID
-        |  e [yz]        edit todo file y or done file z
-        |  g [OUTFILE]   generate task log to PATH
-        |  h             see me
+        |  add      TASK        add a task
+        |  list                 list all tasks
+        |  finish   ID          finish task with ID
+        |  edit     [yz]        edit todo file "y" or done file "z"
+        |  generate [OUTFILE]   generate task log to PATH
+        |  help                 see me
     EOH
 end
 
@@ -152,7 +164,7 @@ def never_do
     when /^a.*/
         x.add(ARGV.join(" "))
     when /^l.*/, nil
-        x.list.each { |t| puts t }
+        x.list(!ARGV.empty?).each { |t| puts t }
     when /^f.*/
         task = x.finish(ARGV.first.to_i).desc
         puts "finish task: #{task}"

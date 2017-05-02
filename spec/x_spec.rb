@@ -10,16 +10,9 @@ describe X do
     end
 
     it "adds a task" do
-        @x.add "hello, world"
-        expect(@x.list).to eq(["0  hello, world"])
-        @x.add "goodbye, world"
-        expect(@x.list).to eq(["0  hello, world", "1  goodbye, world"])
     end
 
     it "finishes a task" do
-        @x.add "whatever"
-        @x.finish 0
-        expect(@x.list).to eq([])
     end
 
     after(:example) do
