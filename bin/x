@@ -113,14 +113,16 @@ class X
                         f.puts "- [#{mark}] #{task.desc}"
                     end
 
-                    f.puts "\nIn #{cur_month}, you have #{m_tot} tasks, finished #{m_done} tasks, complete #{100.*m_done/m_tot}% of them.\n"
+                    f.puts "\nIn #{cur_month}, you have #{m_tot} tasks, finished #{m_done} tasks, complete #{(100.0*m_done/m_tot).round(2)}% of them.\n"
 
                     y_done += m_done
                 end
 
-                f.puts "\nIn year #{year}, you have #{y_tot} tasks, finished #{y_done} tasks, complete #{100.*y_done/y_tot}% of them.\n"
+                f.puts "\nIn year #{year}, you have #{y_tot} tasks, finished #{y_done} tasks, complete #{(100.0*y_done/y_tot).round(2)}% of them.\n"
             end
         end
+
+        puts "task list is generated to #{output}"
     end
 
     private
