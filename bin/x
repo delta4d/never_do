@@ -90,7 +90,7 @@ class X
         output ||= "./task_log.md"
         # group by year, then group by month
         File.open(output, "w") do |f|
-            [*@ys, *@zs].group_by { |t| Time.at(t.start.to_i).year }.each do |year, y_tasks|
+            [*@ys, *@zs].group_by { |t| Time.at(t.start).year }.each do |year, y_tasks|
                 y_tot  = y_tasks.size
                 y_done = 0
 
@@ -98,7 +98,7 @@ class X
                 f.puts "\n------"
                 f.puts
 
-                y_tasks.group_by { |t| Time.at(t.start.to_i).month }.each do |month, m_tasks|
+                y_tasks.group_by { |t| Time.at(t.start).month }.each do |month, m_tasks|
                     cur_month = Date::MONTHNAMES[month]
                     m_tot  = m_tasks.size
                     m_done = 0
