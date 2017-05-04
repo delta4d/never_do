@@ -88,41 +88,45 @@ class X
 
     def generate(output)
         output ||= "./task_log.md"
-        # group by year, then group by month
-        File.open(output, "w") do |f|
-            [*@ys, *@zs].group_by { |t| Time.at(t.start).year }.each do |year, y_tasks|
-                y_tot  = y_tasks.size
-                y_done = 0
+        begin
+            # group by year, then group by month
+            File.open(output, "w") do |f|
+                [*@ys, *@zs].group_by { |t| Time.at(t.start).year }.each do |year, y_tasks|
+                    y_tot  = y_tasks.size
+                    y_done = 0
 
-                f.puts "## #{year}"
-                f.puts "\n------"
-                f.puts
-
-                y_tasks.group_by { |t| Time.at(t.start).month }.each do |month, m_tasks|
-                    cur_month = Date::MONTHNAMES[month]
-                    m_tot  = m_tasks.size
-                    m_done = 0
-
-                    f.puts "### #{cur_month}"
+                    f.puts "## #{year}"
                     f.puts "\n------"
                     f.puts
 
-                    m_tasks.sort_by(&:start).each do |task|
-                        mark = task.finish? ? "x" : " "
-                        m_done += 1 if task.finish?
-                        f.puts "- [#{mark}] #{task.desc}"
+                    y_tasks.group_by { |t| Time.at(t.start).month }.each do |month, m_tasks|
+                        cur_month = Date::MONTHNAMES[month]
+                        m_tot  = m_tasks.size
+                        m_done = 0
+
+                        f.puts "### #{cur_month}"
+                        f.puts "\n------"
+                        f.puts
+
+                        m_tasks.sort_by(&:start).each do |task|
+                            mark = task.finish? ? "x" : " "
+                            m_done += 1 if task.finish?
+                            f.puts "- [#{mark}] #{task.desc}"
+                        end
+
+                        f.puts "\nIn #{cur_month}, you have #{m_tot} tasks, finished #{m_done} tasks, complete #{(100.0*m_done/m_tot).round(2)}% of them.\n"
+
+                        y_done += m_done
                     end
 
-                    f.puts "\nIn #{cur_month}, you have #{m_tot} tasks, finished #{m_done} tasks, complete #{(100.0*m_done/m_tot).round(2)}% of them.\n"
-
-                    y_done += m_done
+                    f.puts "\nIn year #{year}, you have #{y_tot} tasks, finished #{y_done} tasks, complete #{(100.0*y_done/y_tot).round(2)}% of them.\n"
                 end
-
-                f.puts "\nIn year #{year}, you have #{y_tot} tasks, finished #{y_done} tasks, complete #{(100.0*y_done/y_tot).round(2)}% of them.\n"
             end
-        end
 
-        puts "task list is generated to #{output}"
+            puts "task list is generated to #{output}"
+        rescue
+            puts "File open error, make sure #{output} is a file"
+        end
     end
 
     private
